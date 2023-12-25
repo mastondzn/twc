@@ -7,44 +7,41 @@ export { clsx as cx };
 
 type AbstractCompose = (...params: any) => string;
 
-type ExtractComponentProps<
-  TComponent extends React.ElementType,
-  TCompose extends AbstractCompose,
-> = Omit<React.ComponentProps<TComponent>, "className"> & {
-  className?: Parameters<TCompose>[0];
-};
-
 type ResultProps<
   TComponent extends React.ElementType,
-  TProps,
-  TExtraProps,
   TCompose extends AbstractCompose,
-> = TProps extends undefined
-  ? TExtraProps extends undefined
-    ? ExtractComponentProps<TComponent, TCompose>
-    : ExtractComponentProps<TComponent, TCompose> & TExtraProps
-  : TExtraProps extends undefined
-    ? TProps & ExtractComponentProps<TComponent, TCompose>
-    : TProps & ExtractComponentProps<TComponent, TCompose> & TExtraProps;
+  TExtraProps extends Record<string, unknown>,
+  TProps extends Record<string, unknown> = React.ComponentProps<TComponent>,
+> = Omit<
+  {
+    [K in keyof TProps]: keyof React.ComponentProps<TComponent> extends K
+      ? React.ComponentProps<TComponent>[K]
+      : TProps[K];
+  },
+  "className"
+> &
+  TExtraProps & {
+    className?: Parameters<TCompose>[0];
+  };
 
 type Template<
   TComponent extends React.ElementType,
   TCompose extends AbstractCompose,
-  TExtraProps,
-> = <TProps = undefined>(
+  TExtraProps extends Record<string, unknown> = Record<string, never>,
+> = <TProps extends Record<string, unknown> = React.ComponentProps<TComponent>>(
   strings:
     | TemplateStringsArray
     | ((
-        props: ResultProps<TComponent, TProps, TExtraProps, TCompose>,
+        props: ResultProps<TComponent, TCompose, TExtraProps, TProps>
       ) => Parameters<TCompose>[0]),
   ...values: any[]
 ) => React.ComponentType<
-  ResultProps<TComponent, TProps, TExtraProps, TCompose>
+  ResultProps<TComponent, TCompose, TExtraProps, TProps>
 >;
 
 type Twc<TCompose extends AbstractCompose> = (<T extends React.ElementType>(
-  component: T,
-) => Template<T, TCompose, undefined>) & {
+  component: T
+) => Template<T, TCompose>) & {
   [Key in keyof HTMLElementTagNameMap]: Template<
     Key,
     TCompose,
@@ -68,7 +65,7 @@ export type Config<TCompose extends AbstractCompose> = {
 
 function filterProps(
   props: Record<string, any>,
-  shouldForwardProp: ShouldForwardProp,
+  shouldForwardProp: ShouldForwardProp
 ) {
   const filteredProps: Record<string, any> = {};
   const keys = Object.keys(props);
@@ -82,7 +79,7 @@ function filterProps(
 }
 
 export const createTwc = <TCompose extends AbstractCompose = typeof clsx>(
-  config: Config<TCompose> = {},
+  config: Config<TCompose> = {}
 ) => {
   const compose = config.compose ?? clsx;
   const shouldForwardProp =
@@ -104,7 +101,7 @@ export const createTwc = <TCompose extends AbstractCompose = typeof clsx>(
             ref={ref}
             className={compose(
               isFn ? stringsOrFn(props) : twClassName,
-              className,
+              className
             )}
             {...filteredProps}
           />
@@ -120,7 +117,7 @@ export const createTwc = <TCompose extends AbstractCompose = typeof clsx>(
       get(_, name) {
         return template(name as keyof JSX.IntrinsicElements);
       },
-    },
+    }
   ) as any as Twc<TCompose>;
 };
 
