@@ -10,7 +10,7 @@ type AbstractCompose = (...params: any) => string;
 type ResultProps<
   TComponent extends React.ElementType,
   TCompose extends AbstractCompose,
-  TExtraProps extends Record<string, unknown>,
+  TExtraProps extends Record<string, unknown> = Record<string, never>,
   TProps extends Record<string, unknown> = React.ComponentProps<TComponent>,
 > = Omit<
   {
@@ -19,10 +19,9 @@ type ResultProps<
       : TProps[K];
   },
   "className"
-> &
-  TExtraProps & {
-    className?: Parameters<TCompose>[0];
-  };
+> & {
+  className?: Parameters<TCompose>[0];
+} & TExtraProps;
 
 type Template<
   TComponent extends React.ElementType,
